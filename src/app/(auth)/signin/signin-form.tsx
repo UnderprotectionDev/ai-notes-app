@@ -15,9 +15,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AuthFormValues, signinSchema } from "../schema";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export function SigninForm() {
   const [step, setStep] = useState<"signIn" | "signUp">("signIn");
+
+  const { signIn } = useAuthActions();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(signinSchema),
@@ -28,7 +36,35 @@ export function SigninForm() {
   });
 
   async function onSubmit(values: AuthFormValues) {
-    // TODO: Sign in
+    setIsLoading(true);
+    try {
+      await signIn("password", {
+        ...values,
+        flow: step,
+      });
+      toast.success(
+        step === "signIn" ?
+          "Signed in successfully"
+        : "Account created successfully"
+      );
+      router.push("/notes");
+    } catch (error) {
+      console.error(error);
+      if (
+        error instanceof Error &&
+        (error.message.includes("InvalidAccountId") ||
+          error.message.includes("InvalidSecret"))
+      ) {
+        form.setError("root", {
+          type: "manual",
+          message: "Invalid credentials.",
+        });
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -39,9 +75,9 @@ export function SigninForm() {
             {step === "signIn" ? "Login" : "Create Account"}
           </h1>
           <p className="text-muted-foreground">
-            {step === "signIn"
-              ? "Enter your credentials to access your account."
-              : "Enter your details to create a new account."}
+            {step === "signIn" ?
+              "Enter your credentials to access your account."
+            : "Enter your details to create a new account."}
           </p>
         </div>
         <Form {...form}>
@@ -90,14 +126,15 @@ export function SigninForm() {
           variant="link"
           type="button"
           className="w-full text-sm text-muted-foreground cursor-pointer"
+          disabled={isLoading}
           onClick={() => {
             setStep(step === "signIn" ? "signUp" : "signIn");
             form.reset(); // Reset form errors and values when switching modes
           }}
         >
-          {step === "signIn"
-            ? "Don't have an account? Sign Up"
-            : "Already have an account? Sign In"}
+          {step === "signIn" ?
+            "Don't have an account? Sign Up"
+          : "Already have an account? Sign In"}
         </Button>
       </div>
     </div>
