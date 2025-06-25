@@ -7,6 +7,11 @@ interface NoteItemProps {
   note: Doc<"notes">;
 }
 
+/**
+ * Renders a card displaying the title and body of a note.
+ *
+ * @param note - The note object containing title and body fields to display
+ */
 export function NoteItem({ note }: NoteItemProps) {
   return (
     <>

@@ -7,6 +7,11 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { NoteItem } from "./note-item";
 
+/**
+ * Displays the user's notes with conditional rendering for loading and empty states.
+ *
+ * Fetches the current user's notes and renders them in a responsive grid. Shows a loading skeleton while notes are being fetched and an empty state message if no notes exist.
+ */
 export function NotesPage() {
   const notes = useQuery(api.notes.getUserNotes);
 
