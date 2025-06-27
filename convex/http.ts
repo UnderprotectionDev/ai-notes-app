@@ -1,7 +1,9 @@
 import { openai } from "@ai-sdk/openai";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { convertToModelMessages, streamText, UIMessage } from "ai";
+import { convertToModelMessages, streamText, tool, UIMessage } from "ai";
 import { httpRouter } from "convex/server";
+import { z } from "zod";
+import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { auth } from "./auth";
 
@@ -33,6 +35,33 @@ http.route({
       Keep your responses concise and to the point.
       `,
       messages: convertToModelMessages(lastMessages),
+      tools: {
+        findRelevantNotes: tool({
+          description:
+            "Retrieve relevant notes from the database based on the user's query",
+          parameters: z.object({
+            query: z.string().describe("The user's query"),
+          }),
+          execute: async ({ query }) => {
+            console.log("findRelevantNotes query:", query);
+
+            const relevantNotes = await ctx.runAction(
+              internal.notesActions.findRelevantNotes,
+              {
+                query,
+                userId,
+              }
+            );
+
+            return relevantNotes.map((note) => ({
+              id: note._id,
+              title: note.title,
+              body: note.body,
+              creationTime: note._creationTime,
+            }));
+          },
+        }),
+      },
       onError(error) {
         console.error("streamText error:", error);
       },
